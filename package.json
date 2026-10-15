@@ -2,6 +2,15 @@
   "name": "context-desk",
   "version": "0.1.0",
   "description": "See what your AI coding sessions actually looked like: context growth, compactions, corrections and rule files. Runs locally, uploads nothing.",
+  "author": "Yusuf Kurnaz",
+  "homepage": "https://github.com/yusufkrnz/Context-desk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yusufkrnz/Context-desk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yusufkrnz/Context-desk/issues"
+  },
   "type": "module",
   "bin": {
     "context-desk": "dist/cli/index.js"
@@ -17,15 +26,20 @@
     "dev:ui": "vite",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.cli.json --noEmit && tsc -p tsconfig.ui.json --noEmit",
-    "start": "node dist/cli/index.js"
+    "start": "node dist/cli/index.js",
+    "prepublishOnly": "npm test && npm run build"
   },
   "keywords": [
     "claude-code",
-    "context",
+    "claude",
+    "context-window",
     "llm",
-    "agents",
+    "ai-agents",
     "CLAUDE.md",
-    "AGENTS.md"
+    "AGENTS.md",
+    "cursor-rules",
+    "developer-tools",
+    "cli"
   ],
   "license": "MIT",
   "devDependencies": {

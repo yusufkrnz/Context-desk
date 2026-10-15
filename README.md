@@ -6,11 +6,11 @@ See why your coding agent drifts: what filled its context, when it was compacted
 npx context-desk
 ```
 
-![Problem, what it does, what you do with it](docs/problem-solution-impact.svg)
+![Problem, what it does, what you do with it](https://raw.githubusercontent.com/yusufkrnz/Context-desk/main/docs/problem-solution-impact.svg)
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/dashboard-dark.png">
-  <img alt="context-desk dashboard in share mode" src="docs/dashboard-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/yusufkrnz/Context-desk/main/docs/dashboard-dark.png">
+  <img alt="context-desk dashboard in share mode" src="https://raw.githubusercontent.com/yusufkrnz/Context-desk/main/docs/dashboard-light.png">
 </picture>
 
 <sub>Real data from the author's history, shown in share mode: project and session names are replaced, numbers are not.</sub>
