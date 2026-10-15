@@ -1,6 +1,6 @@
 {
   "name": "context-desk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "See what your AI coding sessions actually looked like: context growth, compactions, corrections and rule files. Runs locally, uploads nothing.",
   "author": "Yusuf Kurnaz",
   "homepage": "https://github.com/yusufkrnz/Context-desk#readme",
