@@ -2,18 +2,15 @@
 
 See why your coding agent drifts: what filled its context, when it was compacted, and where you had to step in. Built from your own Claude Code history, on your machine.
 
+![context-desk demo: run one command, see your sessions](https://raw.githubusercontent.com/yusufkrnz/Context-desk/main/docs/demo.gif)
+
 ```bash
 npx context-desk
 ```
 
+<sub>Recorded on the author's real history in share mode: names are replaced, numbers are not.</sub>
+
 ![Problem, what it does, what you do with it](https://raw.githubusercontent.com/yusufkrnz/Context-desk/main/docs/problem-solution-impact.svg)
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/yusufkrnz/Context-desk/main/docs/dashboard-dark.png">
-  <img alt="context-desk dashboard in share mode" src="https://raw.githubusercontent.com/yusufkrnz/Context-desk/main/docs/dashboard-light.png">
-</picture>
-
-<sub>Real data from the author's history, shown in share mode: project and session names are replaced, numbers are not.</sub>
 
 ## On the author's history
 
