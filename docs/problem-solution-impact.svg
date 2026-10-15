@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" width="960" height="300" font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <rect width="960" height="300" fill="#ffffff"/>
+  <style>
+    .k { font-size: 11px; font-weight: 600; letter-spacing: .08em; fill: #7a7974; }
+    .h { font-size: 16px; font-weight: 600; fill: #1c1c1a; }
+    .t { font-size: 13px; fill: #1c1c1a; }
+    .m { font-size: 12px; fill: #7a7974; font-family: ui-monospace, Menlo, monospace; }
+    .box { fill: #ffffff; stroke: #e6e5e1; }
+    .hl { fill: #eef3fb; stroke: #2a78d6; }
+    .arrow { stroke: #7a7974; stroke-width: 1.5; fill: none; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7a7974"/>
+    </marker>
+  </defs>
+
+  <!-- problem -->
+  <rect class="box" x="16" y="16" width="290" height="268" rx="4"/>
+  <text class="k" x="36" y="44">PROBLEM</text>
+  <text class="h" x="36" y="72">Hour three, the agent drifts.</text>
+  <text class="t" x="36" y="100">You can't see why.</text>
+  <text class="t" x="36" y="134">· context fills with tool output</text>
+  <text class="t" x="36" y="158">· failed attempts stay on the desk</text>
+  <text class="t" x="36" y="182">· compaction drops what you said</text>
+  <text class="t" x="36" y="206">· rule files load every turn,</text>
+  <text class="t" x="48" y="226">some not even for this stack</text>
+  <text class="m" x="36" y="262">all of it is in your transcripts</text>
+
+  <path class="arrow" d="M312,150 L342,150" marker-end="url(#a)"/>
+
+  <!-- solution -->
+  <rect class="hl" x="348" y="16" width="290" height="268" rx="4"/>
+  <text class="k" x="368" y="44">WHAT IT DOES</text>
+  <text class="h" x="368" y="72">npx context-desk</text>
+  <text class="t" x="368" y="100">Reads ~/.claude/projects locally.</text>
+  <text class="t" x="368" y="134">· context size per model call</text>
+  <text class="t" x="368" y="158">· every compaction, before → after</text>
+  <text class="t" x="368" y="182">· where you stepped in: correction,</text>
+  <text class="t" x="380" y="202">interrupt, rejected tool call</text>
+  <text class="t" x="368" y="226">· audit of every loaded rule file</text>
+  <text class="m" x="368" y="262">127.0.0.1 only · nothing uploaded</text>
+
+  <path class="arrow" d="M644,150 L674,150" marker-end="url(#a)"/>
+
+  <!-- impact -->
+  <rect class="box" x="680" y="16" width="264" height="268" rx="4"/>
+  <text class="k" x="700" y="44">WHAT YOU DO WITH IT</text>
+  <text class="h" x="700" y="72">Act on numbers, not a feeling.</text>
+  <text class="t" x="700" y="106">· start fresh before the zone</text>
+  <text class="t" x="712" y="126">where you keep stepping in</text>
+  <text class="t" x="700" y="154">· drop or scope rules that</text>
+  <text class="t" x="712" y="174">don't belong to the project</text>
+  <text class="t" x="700" y="202">· move rules a linter can</text>
+  <text class="t" x="712" y="222">enforce out of the prompt</text>
+  <text class="m" x="700" y="262">measured on your own history</text>
+</svg>
