@@ -65,6 +65,10 @@ const en = {
   globalOnProject: 'global rule files also load here; their findings are on the overview.',
   thisProject: 'This project',
   files: 'files',
+  tabSteering: 'When you step in',
+  tabContext: 'Context',
+  tabDesk: 'On the desk',
+  tabErrors: 'Repeated errors',
   firstPrompt: 'First message',
   noTimeline: 'No measured context for this session.',
   findingKinds: {
@@ -166,6 +170,10 @@ const tr: typeof en = {
   globalOnProject: 'global kural dosyası burada da yükleniyor; bulguları genel bakışta.',
   thisProject: 'Bu proje',
   files: 'dosya',
+  tabSteering: 'Ne zaman araya giriyorsun',
+  tabContext: 'Context',
+  tabDesk: 'Masada ne var',
+  tabErrors: 'Geri dönen hatalar',
   firstPrompt: 'İlk mesaj',
   noTimeline: 'Bu oturum için ölçülmüş context yok.',
   findingKinds: {

@@ -172,7 +172,7 @@ code {
 main {
   max-width: 1120px;
   margin: 0 auto;
-  padding: 24px 16px 48px;
+  padding: 16px 16px 40px;
 }
 footer {
   max-width: 1120px;
@@ -199,10 +199,10 @@ footer {
 
 /* ---------- headings & stats ---------- */
 .hero {
-  margin: 8px 0 20px;
+  margin: 4px 0 12px;
 }
 .hero h1 {
-  font-size: clamp(24px, 3.4vw, 34px);
+  font-size: clamp(20px, 2.6vw, 26px);
   line-height: 1.15;
   letter-spacing: -0.02em;
   margin: 0 0 6px;
@@ -215,15 +215,15 @@ footer {
 }
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
 }
 .stat {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-radius: 10px;
+  padding: 8px 12px;
   box-shadow: var(--shadow);
 }
 .stat-label {
@@ -231,7 +231,7 @@ footer {
   color: var(--muted);
 }
 .stat-value {
-  font-size: 26px;
+  font-size: 20px;
   font-weight: 650;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
@@ -243,9 +243,9 @@ footer {
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 16px;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
   box-shadow: var(--shadow);
   min-width: 0;
 }
@@ -442,7 +442,7 @@ table.list th.num {
   text-align: right;
 }
 table.list td {
-  padding: 10px 8px;
+  padding: 7px 8px;
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
@@ -489,10 +489,9 @@ ul.sessions li a {
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 16px;
-  padding: 12px 8px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--line);
   color: var(--ink);
-  border-radius: 8px;
 }
 ul.sessions li a:hover {
   background: var(--accent-soft);
@@ -619,4 +618,75 @@ ul.errors li {
   .card {
     padding: 16px;
   }
+}
+
+/* ---------- tabs ---------- */
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin: 4px 0 12px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tabs a:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+.tabs a.on {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
+}
+.count-badge {
+  font-size: 11px;
+  font-weight: 500;
+  min-width: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--grid);
+  color: var(--muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.tabs a.on .count-badge {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.card.flush {
+  padding: 0;
+  overflow: hidden;
+}
+.card.flush .table-wrap {
+  margin: 0;
+}
+.card.flush table.list th:first-child,
+.card.flush table.list td:first-child {
+  padding-left: 16px;
+}
+.card.flush table.list th:last-child,
+.card.flush table.list td:last-child {
+  padding-right: 16px;
+}
+.card.flush ul.sessions li:last-child a,
+.card.flush table.list tr:last-child td {
+  border-bottom: 0;
+}
+.card.narrow {
+  max-width: 640px;
+}
+.pad {
+  padding: 14px 16px;
+  margin: 0;
 }
