@@ -1,24 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
+import { bucketize } from '../../src/core/buckets';
 import type { Report, RuleFinding, SessionSummary } from '../../src/core/types';
-import { CompositionBar, ContextChart, KIND_COLOR, Sparkline } from './charts';
-import { computeFacts, scopedFindings } from './facts';
-import { fmtDate, fmtDuration, fmtMoment, fmtTokens, homeShort } from './format';
+import { CompositionBars, ContextChart, KIND_COLOR, Sparkline, SteeringBars } from './charts';
+import { computeKpis, scopedFindings, type Kpi } from './facts';
+import { fmtDate, fmtDuration, fmtTokens } from './format';
 import { LangContext, detectLang, dictionaries, type Dict, type Lang, useT } from './i18n';
+import { makeNamer, type Namer } from './mask';
 
 interface Selection {
   project: string | null;
   session: string | null;
+  share: boolean;
 }
 
 // Selection lives in the URL so reloads and shared links keep it.
 function readHash(): Selection {
   const q = new URLSearchParams(location.hash.replace(/^#\/?\??/, ''));
-  return { project: q.get('p'), session: q.get('s') };
+  return { project: q.get('p'), session: q.get('s'), share: q.get('share') === '1' };
 }
 function writeHash(sel: Selection): void {
   const q = new URLSearchParams();
   if (sel.project) q.set('p', sel.project);
   if (sel.session) q.set('s', sel.session);
+  if (sel.share) q.set('share', '1');
   location.hash = q.toString();
 }
 
@@ -49,17 +53,49 @@ export function App() {
 
   const ctx = useMemo(() => ({ lang, t: dictionaries[lang] }), [lang]);
   const t = ctx.t;
+  const namer = useMemo(() => (report ? makeNamer(report, sel.share, t) : null), [report, sel.share, t]);
+  const project = report?.projects.find((p) => p.id === sel.project) ?? null;
 
   return (
     <LangContext.Provider value={ctx}>
       <header className="bar">
-        <span className="brand">context-desk</span>
-        {report && (
-          <span className="bar-meta mono">
-            {homeShort(report.source.dir)} · {report.totals.sessions} {t.sessions} · {fmtDuration(report.totals.activeMinutes)}
-          </span>
+        <span className="brand">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+            <rect x="1" y="11" width="16" height="2.5" rx="1.25" fill="currentColor" />
+            <rect x="3" y="4" width="4" height="7" rx="1" fill="var(--s1)" />
+            <rect x="8" y="6.5" width="4" height="4.5" rx="1" fill="var(--s2)" />
+            <rect x="13" y="8.5" width="3" height="2.5" rx="1" fill="var(--s3)" />
+          </svg>
+          context-desk
+        </span>
+        {report && namer && (
+          <select
+            className="scope"
+            value={project?.id ?? ''}
+            onChange={(e) => writeHash({ ...sel, project: e.target.value || null, session: null })}
+            aria-label={t.project}
+          >
+            <option value="">
+              {t.all} · {report.totals.sessions} {t.sessions}
+            </option>
+            {report.projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {namer.project(p)} · {p.sessions.length} {t.sessions}
+              </option>
+            ))}
+          </select>
         )}
-        <span className="bar-meta">{t.localOnly}</span>
+        {project && namer && !namer.share && <span className="bar-meta mono">{namer.path(project)}</span>}
+        <span className="spacer" />
+        <label className="toggle" title={t.shareHint}>
+          <input type="checkbox" checked={sel.share} onChange={(e) => writeHash({ ...sel, share: e.target.checked })} />
+          <span className="track" aria-hidden="true" />
+          {t.share}
+        </label>
+        <span className="pill">
+          <i aria-hidden="true" />
+          {t.localOnly}
+        </span>
         <span className="lang">
           {(['tr', 'en'] as Lang[]).map((l) => (
             <button key={l} className={l === lang ? 'on' : ''} onClick={() => setLang(l)}>
@@ -70,221 +106,173 @@ export function App() {
       </header>
       {error ? (
         <p className="state">{t.loadError}</p>
-      ) : !report ? (
+      ) : !report || !namer ? (
         <p className="state">{t.loading}</p>
       ) : report.totals.sessions === 0 ? (
         <p className="state">{t.empty}</p>
       ) : (
-        <Dashboard report={report} sel={sel} />
+        <Dashboard report={report} sel={sel} namer={namer} />
       )}
     </LangContext.Provider>
   );
 }
 
-function Dashboard({ report, sel }: { report: Report; sel: Selection }) {
+function Dashboard({ report, sel, namer }: { report: Report; sel: Selection; namer: Namer }) {
   const { t, lang } = useT();
   const project = report.projects.find((p) => p.id === sel.project) ?? null;
   const rows = useMemo(() => {
     const list = (project ? [project] : report.projects).flatMap((p) => p.sessions.map((s) => ({ p, s })));
     return list.sort((a, b) => b.s.start.localeCompare(a.s.start));
   }, [report, project]);
+  const sessions = useMemo(() => rows.map((r) => r.s), [rows]);
   const current = rows.find((r) => r.s.id === sel.session) ?? rows[0];
   const findings = useMemo(() => scopedFindings(report.projects, project), [report, project]);
-  const facts = useMemo(
-    () => computeFacts(rows.map((r) => r.s), project, findings, lang),
-    [rows, project, findings, lang],
-  );
+  const kpis = useMemo(() => computeKpis(sessions, findings, t), [sessions, findings, t]);
+  const buckets = useMemo(() => bucketize(sessions), [sessions]);
   const globalFiles = project ? project.ruleFiles.filter((f) => f.scope === 'User').length : 0;
 
   return (
-    <div className="grid">
-      <aside className="panel projects">
-        <h2>{t.projects}</h2>
+    <main className="dashboard">
+      <section className="kpis">
+        {kpis.map((k) => (
+          <KpiTile key={k.id} kpi={k} />
+        ))}
+      </section>
+
+      <section className="card context">
+        {current ? (
+          <>
+            <header>
+              <div className="min0">
+                <h2 className="ellipsis">{namer.session(current.s)}</h2>
+                <p className="muted small">
+                  {!project && `${namer.project(current.p)} · `}
+                  {fmtDate(current.s.start, lang)} · {fmtDuration(current.s.activeMinutes)} · {current.s.apiCalls} {t.calls}
+                  {current.s.subagents ? ` · ${current.s.subagents} ${t.subagents}` : ''}
+                  {current.s.repeatedErrors.length ? ` · ${current.s.repeatedErrors.length} ${t.repeated}` : ''}
+                </p>
+              </div>
+              <div className="headline">
+                <span className="mono big">{fmtTokens(current.s.peakTokens)}</span>
+                <span className="muted small">
+                  {t.peak} / {fmtTokens(current.s.windowTokens)} {t.window}
+                </span>
+              </div>
+            </header>
+            <div className="chart-box">
+              {current.s.timeline.length > 1 ? (
+                <ContextChart
+                  points={current.s.timeline}
+                  windowTokens={current.s.windowTokens}
+                  compactions={current.s.compactions}
+                  signals={current.s.signals}
+                  quote={namer.quote}
+                />
+              ) : (
+                <p className="muted small">{t.noTimeline}</p>
+              )}
+            </div>
+            <footer className="legend">
+              <span>
+                <i style={{ background: KIND_COLOR.correction }} />
+                {t.correction}
+              </span>
+              <span>
+                <i style={{ background: KIND_COLOR.interrupt }} />
+                {t.interrupt}
+              </span>
+              <span>
+                <i style={{ background: KIND_COLOR.rejection }} />
+                {t.rejection}
+              </span>
+              <span>
+                <i className="dash" />
+                {t.dumbZone}
+              </span>
+            </footer>
+          </>
+        ) : null}
+      </section>
+
+      <section className="card sessions">
+        <header>
+          <h3>{t.sessionsTitle}</h3>
+          <span className="muted small">{rows.length}</span>
+        </header>
         <ul>
-          <ProjectRow
-            active={!project}
-            name={t.all}
-            count={report.totals.sessions}
-            peak={report.totals.peakTokens}
-            onClick={() => writeHash({ project: null, session: null })}
-          />
-          {report.projects.map((p) => (
-            <ProjectRow
-              key={p.id}
-              active={project?.id === p.id}
-              name={p.name}
-              title={homeShort(p.path)}
-              count={p.sessions.length}
-              peak={p.peakTokens}
-              onClick={() => writeHash({ project: p.id, session: null })}
-            />
+          {rows.map(({ p, s }) => (
+            <li key={s.id}>
+              <button className={current?.s.id === s.id ? 'on' : ''} onClick={() => writeHash({ ...sel, session: s.id })}>
+                <span className="s-text min0">
+                  <span className="ellipsis">{namer.session(s)}</span>
+                  <span className="muted small ellipsis">
+                    {fmtDate(s.start, lang)}
+                    {!project && ` · ${namer.project(p)}`}
+                  </span>
+                </span>
+                <Sparkline points={s.timeline} />
+                <span className="s-num">
+                  <span className="mono">{fmtTokens(s.peakTokens)}</span>
+                  <span className="dots">
+                    {s.signals.slice(0, 6).map((sig, i) => (
+                      <i key={i} style={{ background: KIND_COLOR[sig.kind] }} />
+                    ))}
+                  </span>
+                </span>
+              </button>
+            </li>
           ))}
         </ul>
-      </aside>
-
-      <section className="panel facts">
-        <h2>
-          {t.facts}
-          {project && <span> · {project.name}</span>}
-        </h2>
-        <dl>
-          {facts.map((f) => (
-            <div key={f.label} className={f.tone}>
-              <dt>{f.label}</dt>
-              <dd>{f.text}</dd>
-            </div>
-          ))}
-        </dl>
-        <p className="note">{t.heuristicNote}</p>
       </section>
 
-      <section className="panel sessions">
-        <table>
-          <thead>
-            <tr>
-              <th />
-              <th className="spark-col" />
-              <th className="num">{t.peak}</th>
-              <th className="num">{t.steer}</th>
-              <th className="num">{t.compact}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ p, s }) => (
-              <tr
-                key={s.id}
-                className={current?.s.id === s.id ? 'on' : ''}
-                onClick={() => writeHash({ project: project?.id ?? null, session: s.id })}
-              >
-                <td className="title-cell">
-                  <div className="ellipsis">{s.title}</div>
-                  <div className="muted small">
-                    {fmtDate(s.start, lang)} · {fmtDuration(s.activeMinutes)}
-                    {!project && ` · ${p.name}`}
-                  </div>
-                </td>
-                <td className="spark-col">
-                  <Sparkline points={s.timeline} windowTokens={s.windowTokens} />
-                </td>
-                <td className="num mono">{fmtTokens(s.peakTokens)}</td>
-                <td className="num mono">{s.signals.length || ''}</td>
-                <td className="num mono">{s.compactions.length || ''}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <section className="card steering">
+        <header>
+          <h3>{t.steeringTitle}</h3>
+          <span className="muted small">{t.steeringSub}</span>
+        </header>
+        <div className="chart-box">
+          <SteeringBars buckets={buckets} />
+        </div>
+        <p className="foot muted">{t.heuristicNote}</p>
       </section>
 
-      <section className="panel detail">{current && <SessionDetail s={current.s} />}</section>
-
-      <section className="panel rules">
-        <h2>
-          {t.findings} <span>{findings.length}</span>
-        </h2>
-        {globalFiles > 0 && (
-          <p className="note top">
-            + {globalFiles} {t.globalNote}
-          </p>
-        )}
-        <Findings findings={findings} t={t} />
+      <section className="card deskcard">
+        <header>
+          <h3>{t.deskTitle}</h3>
+          <span className="muted small">{t.deskSub}</span>
+        </header>
+        {current?.s.composition ? <CompositionBars composition={current.s.composition} /> : <p className="muted small">{t.noTimeline}</p>}
       </section>
+
+      <section className="card rules">
+        <header>
+          <h3>{t.rulesTitle}</h3>
+          <span className="muted small">{globalFiles ? t.globalNote(globalFiles) : findings.length}</span>
+        </header>
+        <Findings findings={findings} t={t} namer={namer} />
+      </section>
+    </main>
+  );
+}
+
+function KpiTile({ kpi }: { kpi: Kpi }) {
+  return (
+    <div className={`kpi ${kpi.warn ? 'warn' : ''}`}>
+      <span className="kpi-label">{kpi.label}</span>
+      <span className="kpi-value mono">{kpi.value}</span>
+      <span className="kpi-sub">{kpi.sub}</span>
     </div>
   );
 }
 
-function ProjectRow(props: { active: boolean; name: string; title?: string; count: number; peak: number; onClick: () => void }) {
-  return (
-    <li>
-      <button className={props.active ? 'on' : ''} onClick={props.onClick} title={props.title}>
-        <span className="ellipsis">{props.name}</span>
-        <span className="muted mono small">{props.count}</span>
-        <span className="mono small">{fmtTokens(props.peak)}</span>
-      </button>
-    </li>
-  );
-}
-
-function SessionDetail({ s }: { s: SessionSummary }) {
-  const { t, lang } = useT();
-  return (
-    <>
-      <h2 className="ellipsis" title={s.title}>
-        {s.title}
-      </h2>
-      <p className="meta muted small">
-        {fmtDate(s.start, lang)} · {fmtDuration(s.activeMinutes)} · {s.apiCalls} {t.calls} · {t.peak.toLowerCase()} {fmtTokens(s.peakTokens)} / {fmtTokens(s.windowTokens)}
-        {s.subagents ? ` · ${s.subagents} ${t.subagents}` : ''}
-        {s.branch ? ` · ${s.branch}` : ''}
-      </p>
-      {s.timeline.length > 1 ? (
-        <ContextChart points={s.timeline} windowTokens={s.windowTokens} compactions={s.compactions} signals={s.signals} />
-      ) : (
-        <p className="muted small">{t.noTimeline}</p>
-      )}
-      <p className="legend small muted">
-        <i style={{ background: KIND_COLOR.correction }} /> {t.correction}
-        <i style={{ background: KIND_COLOR.interrupt }} /> {t.interrupt}
-        <i style={{ background: KIND_COLOR.rejection }} /> {t.rejection}
-        <i className="dash" /> {t.dumbZone}
-      </p>
-
-      {s.composition && (
-        <>
-          <h3>
-            {t.desk} <span className="muted">· {fmtTokens(s.composition.measured)} · {t.deskNote}</span>
-          </h3>
-          <CompositionBar composition={s.composition} />
-        </>
-      )}
-
-      {s.signals.length > 0 && (
-        <ul className="signals">
-          {s.signals.map((sig, i) => (
-            <li key={i}>
-              <i style={{ background: KIND_COLOR[sig.kind] }} />
-              <span className="mono muted">{fmtMoment(sig.t, s.start, lang)}</span>
-              <span className="mono muted">{sig.tokens ? fmtTokens(sig.tokens) : '–'}</span>
-              <span className="ellipsis" title={sig.text}>
-                {sig.text ? `“${sig.text}”` : t[sig.kind]}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {s.repeatedErrors.length > 0 && (
-        <>
-          <h3>{t.repeated}</h3>
-          <ul className="errors">
-            {s.repeatedErrors.map((e, i) => (
-              <li key={i}>
-                <span className="mono count">{e.count}×</span>
-                <span className="mono muted">{e.tool}</span>
-                <span className="mono ellipsis" title={e.sample}>
-                  {e.sample}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </>
-  );
-}
-
-/** Auto-memory files live under an encoded project folder; the folder name adds nothing. */
-function shortPath(path: string): string {
-  return homeShort(path).replace(/^~\/\.claude\/projects\/[^/]+\//, '~/.claude/projects/…/');
-}
-
-function hintText(f: RuleFinding, t: Dict): string {
+function hintText(f: RuleFinding, t: Dict, namer: Namer): string {
   const [key, ...rest] = f.hint.split(':');
   if (key === 'dup') {
     const ref = rest.join(':');
     const at = ref.lastIndexOf(':');
-    return `${t.hints.dup} ${shortPath(ref.slice(0, at)).replace(/^.*\//, '')}:${ref.slice(at + 1)}`;
+    return `${t.hints.dup} ${namer.file(ref.slice(0, at)).replace(/^.*\//, '')}:${ref.slice(at + 1)}`;
   }
-  if (key === 'stack') return `${rest.join(':')}: ${t.hints.stack}`;
+  if (key === 'stack') return `${rest.join(':')} · ${t.hints.stack}`;
   if (key === 'import') return t.hints.import ?? '';
   return t.hints[f.hint] ?? f.hint;
 }
@@ -299,28 +287,33 @@ function cleanRule(text: string): string {
 
 const KIND_ORDER: RuleFinding['kind'][] = ['stack-mismatch', 'size', 'count', 'duplicate', 'lintable', 'import'];
 
-function Findings({ findings, t }: { findings: RuleFinding[]; t: Dict }) {
+function Findings({ findings, t, namer }: { findings: RuleFinding[]; t: Dict; namer: Namer }) {
   if (findings.length === 0) return <p className="muted small">{t.noFindings}</p>;
+  const counts = KIND_ORDER.map((k) => [k, findings.filter((f) => f.kind === k).length] as const).filter(([, n]) => n > 0);
   const sorted = [...findings].sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
   return (
-    <table className="findings">
-      <tbody>
-        {sorted.map((f, i) => (
-          <tr key={i} className={f.kind}>
-            <td className="kind">{t.findingKinds[f.kind]}</td>
-            <td className="mono where" title={f.file === '*' ? '' : shortPath(f.file)}>
-              {f.file === '*' ? '' : f.file.replace(/^.*\//, '')}
-              {f.line ? `:${f.line}` : ''}
-            </td>
-            <td>
-              {(f.kind === 'lintable' || f.kind === 'duplicate' || f.kind === 'import') && (
-                <span className="rule">{cleanRule(f.text)} </span>
-              )}
-              <span className="muted">{hintText(f, t)}</span>
-            </td>
-          </tr>
+    <>
+      <div className="chips">
+        {counts.map(([k, n]) => (
+          <span key={k} className={`chip ${k}`}>
+            <b className="mono">{n}</b> {t.findingKinds[k]}
+          </span>
         ))}
-      </tbody>
-    </table>
+      </div>
+      <ul className="findings">
+        {sorted.map((f, i) => (
+          <li key={i} className={f.kind}>
+            <span className="mono file ellipsis" title={namer.share ? '' : f.file}>
+              {f.file === '*' ? '' : namer.file(f.file).replace(/^.*\//, '')}
+              {f.line ? `:${f.line}` : ''}
+            </span>
+            <span className="ellipsis">
+              {!namer.share && (f.kind === 'lintable' || f.kind === 'duplicate') && <span className="rule">{cleanRule(f.text)} </span>}
+              <span className="muted">{hintText(f, t, namer)}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }

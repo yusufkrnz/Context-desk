@@ -22,20 +22,33 @@ const STACK_MARKERS: [Stack, string[]][] = [
   ['node', ['package.json']],
 ];
 
-function detectStacks(path: string): Set<Stack> | null {
+const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.venv', 'venv', '__pycache__', '.next', 'Pods']);
+
+/** Stacks used in a project folder. Looks two levels down so monorepos (backend/, frontend/app/) count. */
+export function detectStacks(path: string, depth = 2): Set<Stack> | null {
   if (!existsSync(path)) return null;
   const stacks = new Set<Stack>();
-  let names: string[] = [];
-  try {
-    names = readdirSync(path);
-  } catch {
-    return null;
-  }
-  for (const [stack, markers] of STACK_MARKERS) {
-    if (markers.some((m) => names.includes(m))) stacks.add(stack);
-  }
-  if (names.some((n) => n.endsWith('.xcodeproj') || n.endsWith('.xcworkspace'))) stacks.add('ios');
-  return stacks;
+  const visit = (dir: string, level: number): boolean => {
+    let names: string[];
+    try {
+      names = readdirSync(dir);
+    } catch {
+      return false;
+    }
+    for (const [stack, markers] of STACK_MARKERS) {
+      if (markers.some((m) => names.includes(m))) stacks.add(stack);
+    }
+    if (names.some((n) => n.endsWith('.xcodeproj') || n.endsWith('.xcworkspace'))) stacks.add('ios');
+    if (level < depth) {
+      for (const n of names) {
+        if (n.startsWith('.') || SKIP_DIRS.has(n)) continue;
+        const child = join(dir, n);
+        if (isDir(child)) visit(child, level + 1);
+      }
+    }
+    return true;
+  };
+  return visit(path, 0) ? stacks : null;
 }
 
 async function readJsonl(file: string): Promise<{ entries: unknown[]; skipped: number }> {

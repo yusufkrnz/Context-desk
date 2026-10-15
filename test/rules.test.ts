@@ -61,3 +61,21 @@ describe('analyzeRules on mobile rule files', () => {
     expect(findings).toContainEqual(expect.objectContaining({ kind: 'stack-mismatch', hint: 'stack:android' }));
   });
 });
+
+describe('detectStacks', () => {
+  it('finds stacks inside monorepo subfolders, not just the root', async () => {
+    const fs = await import('node:fs');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const { detectStacks } = await import('../src/core/report.js');
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cdesk-mono-'));
+    fs.mkdirSync(path.join(root, 'backend'));
+    fs.writeFileSync(path.join(root, 'backend', 'pyproject.toml'), '');
+    fs.mkdirSync(path.join(root, 'frontend', 'dashboard'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'frontend', 'dashboard', 'package.json'), '{}');
+    fs.mkdirSync(path.join(root, 'node_modules', 'x'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'node_modules', 'x', 'Podfile'), '');
+    expect([...detectStacks(root)!].sort()).toEqual(['node', 'python']);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+});
